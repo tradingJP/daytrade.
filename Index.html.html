@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daytrade</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#09090b;--s1:#0f1012;--s2:#16181b;--border:#222428;
+  --green:#39d98a;--red:#ff5c6e;--yellow:#ffc85c;--blue:#5cb8ff;
+  --text:#eaedf0;--muted:#52575f;
+  --mono:'Space Mono',monospace;--sans:'Syne',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;
+  padding-bottom:80px;
+  background-image:radial-gradient(ellipse at 30% 0%,rgba(57,217,138,0.05) 0%,transparent 50%);
+}
+.tabs{display:flex;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10}
+.tab{flex:1;padding:16px 8px;font-family:var(--mono);font-size:11px;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--muted);border:none;background:transparent;cursor:pointer;
+  border-bottom:2px solid transparent;transition:all 0.15s}
+.tab.on{color:var(--green);border-bottom-color:var(--green)}
+.page{display:none;padding:24px 16px;max-width:520px;margin:0 auto}
+.page.on{display:block}
+.sh{font-family:var(--mono);font-size:10px;letter-spacing:2.5px;color:var(--muted);
+  text-transform:uppercase;margin-bottom:14px;margin-top:28px}
+.sh:first-child{margin-top:0}
+.field{margin-bottom:12px}
+.field label{display:block;font-family:var(--mono);font-size:10px;color:var(--muted);
+  letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
+.irow{display:flex;background:var(--s1);border:1px solid var(--border);transition:border-color .15s}
+.irow:focus-within{border-color:var(--green)}
+input[type=number],input[type=text],input[type=date]{flex:1;background:transparent;border:none;outline:none;
+  color:var(--text);font-family:var(--mono);font-size:18px;padding:11px 13px;width:100%;
+  -moz-appearance:textfield}
+input[type=date]{color-scheme:dark}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none}
+.unit{font-family:var(--mono);font-size:11px;color:var(--muted);padding:0 13px;
+  display:flex;align-items:center;border-left:1px solid var(--border);white-space:nowrap}
+.presets{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px}
+.pre{font-family:var(--mono);font-size:11px;padding:4px 11px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);cursor:pointer;transition:all .12s}
+.pre:hover,.pre.on{border-color:var(--green);color:var(--green);background:rgba(57,217,138,0.06)}
+.rbox{background:var(--s1);border:1px solid var(--border);padding:18px;margin-bottom:12px;position:relative;overflow:hidden}
+.rbox::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,var(--green),transparent)}
+.rbox.red::before{background:linear-gradient(90deg,var(--red),transparent)}
+.rl{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px}
+.rv{font-family:var(--mono);font-size:clamp(2rem,8vw,3rem);font-weight:700;color:var(--green);letter-spacing:-2px;line-height:1}
+.rv.red{color:var(--red)}
+.rsub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:5px;line-height:1.7}
+.rsub span{color:var(--text)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.mini{background:var(--s1);border:1px solid var(--border);padding:13px}
+.mini .ml{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+.mini .mv{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--text)}
+hr{border:none;border-top:1px solid var(--border);margin:20px 0}
+canvas{width:100%!important;display:block}
+.chart-wrap{background:var(--s1);border:1px solid var(--border);padding:14px;margin-bottom:14px}
+.chart-title{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;
+  background:var(--s1);border:1px solid var(--border);padding:13px 14px}
+.toggle-label{font-family:var(--mono);font-size:12px;color:var(--text)}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.slider-t{position:absolute;inset:0;background:var(--border);cursor:pointer;border-radius:24px;transition:.2s}
+.slider-t:before{content:'';position:absolute;width:18px;height:18px;left:3px;bottom:3px;
+  background:var(--muted);border-radius:50%;transition:.2s}
+input:checked+.slider-t{background:rgba(57,217,138,0.2);border:1px solid var(--green)}
+input:checked+.slider-t:before{transform:translateX(20px);background:var(--green)}
+.btn{width:100%;padding:13px;font-family:var(--mono);font-size:12px;letter-spacing:2px;
+  text-transform:uppercase;cursor:pointer;transition:all .15s;border:1px solid}
+.btn-green{background:rgba(57,217,138,0.08);border-color:rgba(57,217,138,0.25);color:var(--green)}
+.btn-green:hover{background:rgba(57,217,138,0.14)}
+.btn-blue{background:rgba(92,184,255,0.08);border-color:rgba(92,184,255,0.25);color:var(--blue)}
+.btn-blue:hover{background:rgba(92,184,255,0.14)}
+.btn-red{background:rgba(255,92,110,0.08);border-color:rgba(255,92,110,0.25);color:var(--red)}
+.btn-red:hover{background:rgba(255,92,110,0.14)}
+
+/* Backup section */
+.backup-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--s2);border:1px solid var(--border);
+  font-family:var(--mono);font-size:12px;color:var(--text);
+  padding:10px 20px;opacity:0;transition:all 0.3s;pointer-events:none;z-index:100;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.green{border-color:rgba(57,217,138,0.4);color:var(--green)}
+.toast.red{border-color:rgba(255,92,110,0.4);color:var(--red)}
+
+.trade-list{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.trade-item{background:var(--s1);border:1px solid var(--border);border-left:3px solid var(--border);
+  padding:13px 14px;position:relative}
+.trade-item.win{border-left-color:var(--green)}
+.trade-item.loss{border-left-color:var(--red)}
+.trade-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.trade-name{font-family:var(--sans);font-size:14px;font-weight:700}
+.trade-result{font-family:var(--mono);font-size:14px;font-weight:700}
+.trade-result.win{color:var(--green)}.trade-result.loss{color:var(--red)}
+.trade-meta{font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.8}
+.trade-rule{display:inline-block;font-family:var(--mono);font-size:10px;padding:2px 7px;margin-top:5px;border:1px solid}
+.trade-rule.ok{border-color:rgba(57,217,138,0.3);color:var(--green);background:rgba(57,217,138,0.06)}
+.trade-rule.nok{border-color:rgba(255,92,110,0.3);color:var(--red);background:rgba(255,92,110,0.06)}
+.del-btn{position:absolute;top:10px;right:10px;background:transparent;border:none;
+  color:var(--muted);cursor:pointer;font-size:14px;padding:2px 6px;transition:color .15s}
+.del-btn:hover{color:var(--red)}
+.empty{text-align:center;padding:40px 20px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.trade-item{animation:fadeUp 0.25s ease both}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<div class="tabs">
+  <button class="tab on" onclick="showTab('size')">📐 Position</button>
+  <button class="tab"    onclick="showTab('journal')">📒 Journal</button>
+</div>
+
+<!-- PAGE 1 -->
+<div class="page on" id="page-size">
+  <div class="sh">Din konto</div>
+  <div class="field">
+    <label>Kontostørrelse</label>
+    <div class="irow"><input type="number" id="account" value="100000" min="0" step="1000"><span class="unit">DKK</span></div>
+  </div>
+  <div class="field">
+    <label>Risiko pr. trade</label>
+    <div class="irow"><input type="number" id="riskPct" value="1" min="0.1" max="100" step="0.1"><span class="unit">%</span></div>
+    <div class="presets">
+      <button class="pre" data-v="0.5">0.5%</button>
+      <button class="pre on" data-v="1">1%</button>
+      <button class="pre" data-v="1.5">1.5%</button>
+      <button class="pre" data-v="2">2%</button>
+    </div>
+  </div>
+  <div class="sh">Dit setup</div>
+  <div class="field">
+    <label>Stop Loss — antal point</label>
+    <div class="irow"><input type="number" id="slPoints" value="62" min="0.01" step="1"><span class="unit">point</span></div>
+  </div>
+  <hr>
+  <div class="rbox red">
+    <div class="rl">Max tab på denne trade</div>
+    <div class="rv red" id="maxLoss">—</div>
+    <div class="rsub" id="sizeDesc"></div>
+  </div>
+  <div class="g2">
+    <div class="mini"><div class="ml">Antal enheder</div><div class="mv" id="units">—</div></div>
+    <div class="mini"><div class="ml">SL størrelse</div><div class="mv" id="slVal">—</div></div>
+  </div>
+</div>
+
+<!-- PAGE 2 -->
+<div class="page" id="page-journal">
+
+  <div class="chart-wrap">
+    <div class="chart-title">Equity kurve</div>
+    <canvas id="chart" height="180"></canvas>
+  </div>
+
+  <div class="g2">
+    <div class="mini"><div class="ml">Total P&L</div><div class="mv" id="jPnl">—</div></div>
+    <div class="mini"><div class="ml">Win Rate</div><div class="mv" id="jWR">—</div></div>
+    <div class="mini"><div class="ml">Antal trades</div><div class="mv" id="jCount">0</div></div>
+    <div class="mini"><div class="ml">Regler fulgt</div><div class="mv" id="jRules">—</div></div>
+  </div>
+
+  <hr>
+
+  <!-- BACKUP -->
+  <div class="sh">Backup</div>
+  <div class="backup-row">
+    <button class="btn btn-blue" onclick="exportTrades()">⬇ Eksporter</button>
+    <label class="btn btn-green" style="display:flex;align-items:center;justify-content:center;cursor:pointer">
+      ⬆ Importer
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importTrades(event)">
+    </label>
+  </div>
+  <div style="font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.8;margin-bottom:4px">
+    Eksporter gemmer dine trades som en .json fil.<br>
+    Importer indlæser en tidligere gemt fil.
+  </div>
+
+  <hr>
+
+  <!-- ADD TRADE -->
+  <div class="sh">Tilføj trade</div>
+  <div class="field">
+    <label>Dato</label>
+    <div class="irow"><input type="date" id="tDate"></div>
+  </div>
+  <div class="field">
+    <label>Instrument</label>
+    <div class="irow"><input type="text" id="tInstrument" placeholder="NQ, ES, GOLD…"></div>
+  </div>
+  <div class="g2" style="margin-bottom:12px">
+    <div class="field" style="margin-bottom:0">
+      <label>Resultat i kr</label>
+      <div class="irow"><input type="number" id="tKr" placeholder="±500" step="1"><span class="unit">kr</span></div>
+    </div>
+    <div class="field" style="margin-bottom:0">
+      <label>Resultat i R</label>
+      <div class="irow"><input type="number" id="tR" placeholder="±2" step="0.1"><span class="unit">R</span></div>
+    </div>
+  </div>
+  <div class="toggle-row" style="margin-bottom:12px">
+    <span class="toggle-label">Fulgte jeg min plan?</span>
+    <label class="toggle"><input type="checkbox" id="tRule" checked><span class="slider-t"></span></label>
+  </div>
+  <button class="btn btn-green" onclick="addTrade()" style="margin-bottom:4px">+ Tilføj trade</button>
+
+  <div class="trade-list" id="tradeList"></div>
+  <div class="empty" id="emptyState">Ingen trades endnu — tilføj din første trade ovenfor</div>
+</div>
+
+<script>
+const fmt=(n,d=0)=>n.toLocaleString('da-DK',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+// TOAST
+let toastTimer;
+function showToast(msg, type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast '+(type);
+  void t.offsetWidth;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// TABS
+function showTab(t){
+  document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('on',['size','journal'][i]===t));
+  document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id==='page-'+t));
+  if(t==='journal') renderJournal();
+}
+
+// PAGE 1
+function calcSize(){
+  const account =parseFloat(document.getElementById('account').value)||0;
+  const riskPct =parseFloat(document.getElementById('riskPct').value)||1;
+  const slPoints=parseFloat(document.getElementById('slPoints').value)||0;
+  if(!account||!slPoints) return;
+  const maxLoss=account*(riskPct/100);
+  const units=maxLoss/slPoints;
+  document.getElementById('maxLoss').textContent=fmt(maxLoss,0)+' kr';
+  document.getElementById('units').textContent=fmt(units,2);
+  document.getElementById('slVal').textContent=fmt(slPoints,2)+' pt';
+  document.getElementById('sizeDesc').innerHTML=
+    `SL <span>${fmt(slPoints,2)} point</span> · konto <span>${fmt(account,0)} kr</span><br>→ max <span>${fmt(units,2)} enheder</span> ved <span>${riskPct}% risiko</span>`;
+}
+['account','riskPct','slPoints'].forEach(id=>document.getElementById(id).addEventListener('input',calcSize));
+document.querySelectorAll('.pre[data-v]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.pre[data-v]').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on');
+    document.getElementById('riskPct').value=btn.dataset.v;
+    calcSize();
+  });
+});
+
+// TRADES
+let trades=JSON.parse(localStorage.getItem('dj_trades')||'[]');
+function saveTrades(){ localStorage.setItem('dj_trades',JSON.stringify(trades)); }
+
+document.getElementById('tDate').valueAsDate=new Date();
+
+function addTrade(){
+  const date      =document.getElementById('tDate').value;
+  const instrument=document.getElementById('tInstrument').value.trim().toUpperCase();
+  const kr        =parseFloat(document.getElementById('tKr').value);
+  const r         =parseFloat(document.getElementById('tR').value);
+  const rule      =document.getElementById('tRule').checked;
+  if(!instrument){ showToast('Angiv et instrument','red'); return; }
+  if(isNaN(kr)&&isNaN(r)){ showToast('Angiv resultat i kr eller R','red'); return; }
+  trades.push({id:Date.now(),date,instrument,kr:isNaN(kr)?null:kr,r:isNaN(r)?null:r,rule});
+  saveTrades();
+  document.getElementById('tInstrument').value='';
+  document.getElementById('tKr').value='';
+  document.getElementById('tR').value='';
+  document.getElementById('tRule').checked=true;
+  document.getElementById('tDate').valueAsDate=new Date();
+  showToast('Trade tilføjet ✓','green');
+  renderJournal();
+}
+
+function deleteTrade(id){
+  trades=trades.filter(t=>t.id!==id);
+  saveTrades();
+  renderJournal();
+}
+
+// EXPORT
+function exportTrades(){
+  if(!trades.length){ showToast('Ingen trades at eksportere','red'); return; }
+  const json=JSON.stringify({exported:new Date().toISOString(),trades},null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  const d=new Date().toISOString().slice(0,10);
+  a.download=`daytrade-journal-${d}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Journal eksporteret ✓','green');
+}
+
+// IMPORT
+function importTrades(e){
+  const file=e.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      const imported=data.trades||data;
+      if(!Array.isArray(imported)) throw new Error();
+      // Merge — avoid duplicates by id
+      const existingIds=new Set(trades.map(t=>t.id));
+      const newTrades=imported.filter(t=>!existingIds.has(t.id));
+      trades=[...trades,...newTrades];
+      saveTrades();
+      renderJournal();
+      showToast(`${newTrades.length} trades importeret ✓`,'green');
+    } catch{
+      showToast('Fejl: ugyldig fil','red');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
+// RENDER
+function renderJournal(){
+  const list=document.getElementById('tradeList');
+  const empty=document.getElementById('emptyState');
+  const sorted=[...trades].sort((a,b)=>a.date.localeCompare(b.date));
+  const n=sorted.length;
+  const wins=sorted.filter(t=>(t.kr??t.r??0)>0).length;
+  const totalKr=sorted.reduce((s,t)=>s+(t.kr??0),0);
+  const rulesOk=sorted.filter(t=>t.rule).length;
+
+  document.getElementById('jCount').textContent=n;
+  document.getElementById('jWR').textContent=n?fmt(wins/n*100,0)+'%':'—';
+  document.getElementById('jRules').textContent=n?fmt(rulesOk/n*100,0)+'%':'—';
+  const pnlEl=document.getElementById('jPnl');
+  if(n){ pnlEl.textContent=(totalKr>=0?'+':'')+fmt(totalKr,0)+' kr'; pnlEl.style.color=totalKr>=0?'var(--green)':'var(--red)'; }
+  else { pnlEl.textContent='—'; pnlEl.style.color='var(--text)'; }
+
+  drawEquity(sorted);
+
+  list.innerHTML='';
+  if(!n){ empty.style.display='block'; return; }
+  empty.style.display='none';
+
+  [...sorted].reverse().forEach(t=>{
+    const val=t.kr??t.r??0;
+    const isWin=val>0;
+    const krTxt=t.kr!=null?(t.kr>=0?'+':'')+fmt(t.kr,0)+' kr':'';
+    const rTxt=t.r!=null?(t.r>=0?'+':'')+t.r+'R':'';
+    const resTxt=[krTxt,rTxt].filter(Boolean).join(' · ');
+    const el=document.createElement('div');
+    el.className='trade-item '+(isWin?'win':'loss');
+    el.innerHTML=`
+      <button class="del-btn" onclick="deleteTrade(${t.id})">✕</button>
+      <div class="trade-top">
+        <span class="trade-name">${t.instrument}</span>
+        <span class="trade-result ${isWin?'win':'loss'}">${resTxt}</span>
+      </div>
+      <div class="trade-meta">${t.date||'—'}</div>
+      <div class="trade-rule ${t.rule?'ok':'nok'}">${t.rule?'✓ Plan fulgt':'✗ Plan ikke fulgt'}</div>
+    `;
+    list.appendChild(el);
+  });
+}
+
+function drawEquity(sorted){
+  const canvas=document.getElementById('chart');
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.parentElement.clientWidth-28;
+  const H=180;
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  const pad={t:10,r:10,b:28,l:55};
+  const cw=W-pad.l-pad.r, ch=H-pad.t-pad.b;
+  let equity=[0], running=0;
+  sorted.forEach(t=>{ running+=(t.kr??0); equity.push(running); });
+  if(equity.length<2){
+    ctx.fillStyle='rgba(82,87,95,0.6)'; ctx.font=`11px 'Space Mono'`;
+    ctx.textAlign='center'; ctx.fillText('Tilføj trades for at se kurven',W/2,H/2); return;
+  }
+  const min=Math.min(...equity), max=Math.max(...equity), range=max-min||1;
+  const toX=i=>pad.l+(i/(equity.length-1))*cw;
+  const toY=v=>pad.t+ch-((v-min)/range)*ch;
+  ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+  for(let i=0;i<=3;i++){ const y=pad.t+i*(ch/3); ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cw,y);ctx.stroke(); }
+  ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(pad.l,toY(0));ctx.lineTo(pad.l+cw,toY(0));ctx.stroke();
+  ctx.setLineDash([]);
+  const endVal=equity[equity.length-1];
+  const grad=ctx.createLinearGradient(0,pad.t,0,pad.t+ch);
+  if(endVal>=0){grad.addColorStop(0,'rgba(57,217,138,0.22)');grad.addColorStop(1,'rgba(57,217,138,0)');}
+  else{grad.addColorStop(0,'rgba(255,92,110,0)');grad.addColorStop(1,'rgba(255,92,110,0.2)');}
+  ctx.beginPath();ctx.moveTo(toX(0),toY(equity[0]));
+  for(let i=1;i<equity.length;i++) ctx.lineTo(toX(i),toY(equity[i]));
+  ctx.lineTo(toX(equity.length-1),H-pad.b);ctx.lineTo(toX(0),H-pad.b);ctx.closePath();
+  ctx.fillStyle=grad;ctx.fill();
+  for(let i=1;i<equity.length;i++){
+    ctx.beginPath();ctx.moveTo(toX(i-1),toY(equity[i-1]));ctx.lineTo(toX(i),toY(equity[i]));
+    ctx.strokeStyle=equity[i]>=equity[i-1]?'#39d98a':'#ff5c6e';ctx.lineWidth=2;ctx.stroke();
+  }
+  for(let i=1;i<equity.length;i++){
+    ctx.beginPath();ctx.arc(toX(i),toY(equity[i]),3,0,Math.PI*2);
+    ctx.fillStyle=equity[i]>=equity[i-1]?'#39d98a':'#ff5c6e';ctx.fill();
+  }
+  ctx.fillStyle='rgba(82,87,95,0.9)';ctx.font=`9px 'Space Mono'`;ctx.textAlign='right';
+  [min,0,max].forEach(v=>{ if(min===max) return; ctx.fillText((v>=0?'+':'')+fmt(v,0),pad.l-5,toY(v)+4); });
+  ctx.textAlign='center';
+  const step=Math.max(1,Math.floor((equity.length-1)/4));
+  for(let i=step;i<equity.length;i+=step) ctx.fillText(i,toX(i),H-pad.b+16);
+}
+
+calcSize();
+renderJournal();
+</script>
+</body>
+</html>
